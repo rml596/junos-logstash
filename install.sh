@@ -12,7 +12,7 @@ cd /var/tmp/
 
 #Determine the latest version of ELK based on current Elasticsearch version. All other components should match this release
 #version=$(curl -s https://www.elastic.co/downloads/elasticsearch | grep Version: -A1 | grep -v Version | sed 's/<[^>]*>//g' | sed 's/ //g')
-version="7.4.2"
+version="7.5.2"
 
 start=$(date +%s.%N)
 route=$(ip route get 8.8.8.8)
@@ -21,9 +21,10 @@ ip_address=$(awk '{print $7}' <<< "${route}")
 
 #Install Prerequisites, Elasticsearch, JAVA and Git
 #Assuming Python, Pip etc is already installed 
-sudo apt update 
-sudo apt install git python-pip
-sudo apt install openjdk-11-jdk
+sudo yum update 
+sudo yum install python -y
+sudo yum install git python-pip -y
+sudo yum install openjdk-11-jdk -y
 pip install --upgrade pip==9.0.3
 wget -c https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-$version-amd64.deb
 sudo dpkg -i elasticsearch-$version-amd64.deb
@@ -63,12 +64,13 @@ printf "Installing Filebeat...this will need to be potentially customised for lo
 #Install SRX specific components
 cd /var/tmp/
 rm -r junos-logstash/
-git clone https://github.com/farsonic/junos-logstash.git
+git clone https://github.com/rml596/junos-logstash.git
 mkdir /etc/logstash/data/
-wget -N http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz
-wget -N http://geolite.maxmind.com/download/geoip/database/GeoLite2-ASN.tar.gz
-tar -zxvf GeoLite2-City.tar.gz --transform='s/.*\///' -C /etc/logstash/data/
-tar -zxvf GeoLite2-ASN.tar.gz --transform='s/.*\///' -C /etc/logstash/data/
+#geolite needs to be manually added
+#wget -N http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz
+#wget -N http://geolite.maxmind.com/download/geoip/database/GeoLite2-ASN.tar.gz
+#tar -zxvf GeoLite2-City.tar.gz --transform='s/.*\///' -C /etc/logstash/data/
+#tar -zxvf GeoLite2-ASN.tar.gz --transform='s/.*\///' -C /etc/logstash/data/
 cp /var/tmp/junos-logstash/configuration/* /etc/logstash/conf.d/
 sed -i.bak s/IPADDRESS/$ip_address/ /etc/logstash/conf.d/20-output.conf
 
