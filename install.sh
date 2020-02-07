@@ -24,10 +24,25 @@ ip_address=$(awk '{print $7}' <<< "${route}")
 sudo yum update 
 sudo yum install python -y
 sudo yum install git python-pip -y
-sudo yum install openjdk-11-jdk -y
+sudo yum -y install java-openjdk-devel java-openjdk
 pip install --upgrade pip==9.0.3
-wget -c https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-$version-amd64.deb
-sudo dpkg -i elasticsearch-$version-amd64.deb
+
+#Adds elasticsearch7 repo
+cat <<EOF | sudo tee /etc/yum.repos.d/elasticsearch.repo
+[elasticsearch-7.x]
+name=Elasticsearch repository for 7.x packages
+baseurl=https://artifacts.elastic.co/packages/7.x/yum
+gpgcheck=1
+gpgkey=https://artifacts.elastic.co/GPG-KEY-elasticsearch
+enabled=1
+autorefresh=1
+type=rpm-md
+EOF
+sudo rpm --import https://artifacts.elastic.co/GPG-KEY-elasticsearch
+sudo yum clean all
+sudo yum makecache
+sudo yum -y install elasticsearch
+
 git clone https://github.com/Gallore/yaml_cli
 cd yaml_cli
 pip install .
@@ -38,8 +53,7 @@ yaml_cli -f /etc/elasticsearch/elasticsearch.yml -s cluster.initial_master_nodes
 
 
 #Install Kibana
-wget -c https://artifacts.elastic.co/downloads/kibana/kibana-$version-amd64.deb
-sudo dpkg -i kibana-$version-amd64.deb
+sudo yum -y install kibana
 printf "Modifying Kibana YML files to local IP address....."
 sed -i.bak s/#server.host/server.host/ /etc/kibana/kibana.yml
 sed -i.bak s/#elasticsearch.url/elasticsearch.url/ /etc/kibana/kibana.yml
@@ -47,17 +61,19 @@ yaml_cli -f /etc/kibana/kibana.yml -s server.host $ip_address
 yaml_cli -f /etc/kibana/kibana.yml -s elasticsearch.hosts http://locahost:9200
 sudo sysctl -w vm.max_map_count=262144
 
+#adding port 5601 to firewall exception
+sudo firewall-cmd --add-port=5601/tcp --permanent
+sudo firewall-cmd --reload
 
 #Install LogStash
-wget -c https://artifacts.elastic.co/downloads/logstash/logstash-$version.deb
-sudo dpkg -i logstash-$version.deb
+
+sudo yum -y install logstash
 #printf "Modifying Logstash YML file to local IP address....."
 #yaml_cli -f /etc/logstash/logstash.yml -s http.host $ip_address
 
 #Install FileBeat
 #wget -c https://artifacts.elastic.co/downloads/logstash/logstash-$version.deb
-wget -c https://artifacts.elastic.co/downloads/beats/filebeat/filebeat-$version-amd64.deb
-sudo dpkg -i filebeat-$version-amd64.deb
+sudo yum install filebeat auditbeat metricbeat packetbeat heartbeat-elastic -y
 printf "Installing Filebeat...this will need to be potentially customised for local environment"
 #yaml_cli -f /etc/filebeat/logstash.yml -s http.host $ip_address
 
