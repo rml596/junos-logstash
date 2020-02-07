@@ -21,9 +21,12 @@ ip_address=$(awk '{print $7}' <<< "${route}")
 
 #Install Prerequisites, Elasticsearch, JAVA and Git
 #Assuming Python, Pip etc is already installed 
-sudo yum update 
+sudo yum update -y
 sudo yum install python -y
-sudo yum install git python-pip -y
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+python get-pip.py
+
+sudo yum install git
 sudo yum -y install java-openjdk-devel java-openjdk
 pip install --upgrade pip==9.0.3
 
@@ -82,13 +85,18 @@ cd /var/tmp/
 rm -r junos-logstash/
 git clone https://github.com/rml596/junos-logstash.git
 mkdir /etc/logstash/data/
+
 #geolite needs to be manually added
 #wget -N http://geolite.maxmind.com/download/geoip/database/GeoLite2-City.tar.gz
 #wget -N http://geolite.maxmind.com/download/geoip/database/GeoLite2-ASN.tar.gz
-#tar -zxvf GeoLite2-City.tar.gz --transform='s/.*\///' -C /etc/logstash/data/
-#tar -zxvf GeoLite2-ASN.tar.gz --transform='s/.*\///' -C /etc/logstash/data/
+tar -zxvf /root/GeoLite2-City.tar.gz --transform='s/.*\///' -C /etc/logstash/data/
+tar -zxvf /root/GeoLite2-ASN.tar.gz --transform='s/.*\///' -C /etc/logstash/data/
 cp /var/tmp/junos-logstash/configuration/* /etc/logstash/conf.d/
 sed -i.bak s/IPADDRESS/$ip_address/ /etc/logstash/conf.d/20-output.conf
+
+sudo firewall-cmd --add-port=5140/tcp --permanent
+sudo firewall-cmd --add-port=5140/udp --permanent
+sudo firewall-cmd --reload
 
 #Install curator
 pip install elasticsearch-curator
